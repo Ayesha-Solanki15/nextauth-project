@@ -3,6 +3,8 @@ import authConfig from "./auth.config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { getUserById } from "./data/user";
+import email from "next-auth/providers/email";
+import { db } from "./lib/db";
 
 // declare module "@auth/core" {
 //   interface Session {
@@ -16,14 +18,32 @@ import { getUserById } from "./data/user";
 const prisma = new PrismaClient();
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error",
+  },
+  events: {
+    async linkAccount({ user }) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      });
+    },
+  },
   callbacks: {
-    // async signIn({ user }) {
-    //   const existingUser = await getUserById(user.id);
-    //   if (!existingUser || !existingUser.emailVerified) {
-    //     return false;
-    //   }
-    //   return true;
-    // },
+    async signIn({ user, account }) {
+      // allow OAuth without email verification
+      if (account?.provider !== "credentials") {
+        return true;
+      }
+      const existingUser = await getUserById(user.id);
+      // prevent sign in without email verification
+      if (!existingUser || !existingUser.emailVerified) {
+        return false;
+      }
+      // TODO: ADD 2FA check
+      return true;
+    },
     async session({ token, session }) {
       // console.log("Session token", token);
       // console.log("Session", session);
