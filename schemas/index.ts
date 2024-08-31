@@ -17,3 +17,15 @@ export const RegisterSchema = z.object({
 });
 
 // it's good to not set the limit of password during login because it could be a case where we have pre-existing users that have a password that is smaller than the limit, we may set it for register
+
+export const ResetSchema = z.object({
+  email: z.string().email({
+    message: "Email is required",
+  }),
+});
+
+export const NewPasswordSchema = z.object({
+  password: z.string().min(6, {
+    message: "Minimum 6 characters required",
+  }),
+});
